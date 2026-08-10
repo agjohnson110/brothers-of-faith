@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1" />
+<title>Scripture Library</title>
+<link rel="stylesheet" href="style.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
+</head>
+<body>
+
+  <!-- ============ SIGN-IN SCREEN ============ -->
+  <section id="screen-signin" class="screen">
+    <div class="signin-wrap">
+      <p class="eyebrow">Brothers of Faith</p>
+      <h1 class="signin-title">Scripture<br>Library</h1>
+      <p class="signin-sub">Sign in with the Google account your group added you with.</p>
+      <button id="btn-signin" class="btn btn-primary">Sign in with Google</button>
+      <p id="signin-error" class="signin-error" hidden></p>
+    </div>
+  </section>
+
+  <!-- ============ LIST SCREEN ============ -->
+  <section id="screen-list" class="screen" hidden>
+    <header class="topbar">
+      <p class="topbar-title">The Library</p>
+      <button id="btn-signout" class="icon-btn" aria-label="Sign out" title="Sign out">
+        <svg viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M12 3a1 1 0 0 1 1 1v7a1 1 0 1 1-2 0V4a1 1 0 0 1 1-1Zm6.36 2.64a1 1 0 0 1 0 1.41A7 7 0 1 1 5.64 7.05a1 1 0 1 1 1.41 1.41A5 5 0 1 0 16.95 7.05a1 1 0 0 1 1.41-1.41Z"/></svg>
+      </button>
+    </header>
+
+    <div id="list-status" class="list-status" hidden></div>
+    <ul id="list" class="list" hidden></ul>
+
+    <div id="empty-state" class="empty-state" hidden>
+      <p class="empty-title">Nothing waiting</p>
+      <p class="empty-sub">Every passage in the library has been discussed.</p>
+    </div>
+  </section>
+
+  <!-- ============ DETAIL SCREEN ============ -->
+  <section id="screen-detail" class="screen" hidden>
+    <header class="topbar topbar-detail">
+      <button id="btn-back" class="icon-btn" aria-label="Back">
+        <svg viewBox="0 0 24 24" width="22" height="22"><path fill="currentColor" d="M15.7 4.3a1 1 0 0 1 0 1.4L9.42 12l6.29 6.3a1 1 0 1 1-1.42 1.4l-7-7a1 1 0 0 1 0-1.4l7-7a1 1 0 0 1 1.42 0Z"/></svg>
+      </button>
+      <p class="topbar-title">Passage</p>
+      <span class="icon-btn-spacer"></span>
+    </header>
+
+    <div class="detail-body">
+      <p id="detail-eyebrow" class="eyebrow"></p>
+      <h1 id="detail-reference" class="detail-reference"></h1>
+      <p id="detail-meta" class="detail-meta"></p>
+
+      <div id="detail-votes" class="detail-votes"></div>
+
+      <div class="divider"></div>
+
+      <div id="detail-text-wrap">
+        <p class="section-label">Passage text</p>
+        <p id="detail-text" class="detail-text">Loading…</p>
+      </div>
+
+      <div class="divider"></div>
+
+      <div id="detail-summary-wrap" hidden>
+        <p class="section-label">Summary</p>
+        <p id="detail-summary" class="detail-notes"></p>
+      </div>
+
+      <div id="detail-notes-wrap" hidden>
+        <p class="section-label">Notes</p>
+        <p id="detail-notes-text" class="detail-notes"></p>
+      </div>
+    </div>
+
+    <div class="detail-actions">
+      <button id="btn-delete" class="btn btn-ghost-danger">Not now</button>
+      <button id="btn-done" class="btn btn-primary">Mark discussed</button>
+    </div>
+  </section>
+
+  <!-- toast -->
+  <div id="toast" class="toast" hidden></div>
+
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <script src="config.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
