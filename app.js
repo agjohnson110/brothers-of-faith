@@ -363,10 +363,7 @@ async function openDetail(row) {
   currentDetailRow = row;
   showScreen("detail");
 
-  $("detail-eyebrow").textContent = row.addedBy ? `Added by ${row.addedBy}` : "The Ledger";
   $("detail-reference").textContent = row.reference || "(untitled passage)";
-  $("detail-meta").textContent = "Pending discussion";
-  $("detail-votes").innerHTML = `<span class="up">↑ ${row.upvotes} up</span><span class="down">↓ ${row.downvotes} down</span>`;
 
   const summaryWrap = $("detail-summary-wrap");
   if (row.summary) {
