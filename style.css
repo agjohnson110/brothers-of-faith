@@ -55,6 +55,10 @@ button {
   flex-direction: column;
 }
 
+.screen[hidden] {
+  display: none;
+}
+
 .eyebrow {
   font-family: var(--font-mono);
   font-size: 12px;

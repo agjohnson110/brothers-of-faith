@@ -282,11 +282,9 @@ function attachSwipeHandlers(li, row) {
     if (isHorizontal && Math.abs(dx) > SWIPE_VOTE_THRESHOLD) {
       li.dataset.suppressClick = "1";
       const direction = dx > 0 ? "up" : "down";
-      card.style.transform = `translateX(${dx > 0 ? "120%" : "-120%"})`;
       castVote(row, direction, li);
-    } else {
-      card.style.transform = "translateX(0)";
     }
+    card.style.transform = "translateX(0)";
     isHorizontal = false;
     decided = false;
   };
@@ -317,11 +315,11 @@ async function castVote(row, direction, li) {
   if (direction === "up") row.upvotes += 1;
   else row.downvotes += 1;
 
-  // remove the row from view after the fling animation
-  setTimeout(() => {
-    li.remove();
-    if (pendingRows().length === 0) renderList();
-  }, 180);
+  // stays in the list — just refresh its displayed vote counts
+  const votesEl = li.querySelector(".row-votes");
+  if (votesEl) {
+    votesEl.innerHTML = `<span class="up">↑${row.upvotes}</span><span class="down">↓${row.downvotes}</span>`;
+  }
 
   toast(direction === "up" ? "Upvoted" : "Downvoted");
 
