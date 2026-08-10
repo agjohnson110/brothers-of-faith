@@ -139,6 +139,10 @@ async function loadSheet(quiet = false) {
       upvotes: parseInt(r[5], 10) || 0,
       downvotes: parseInt(r[6], 10) || 0,
     }));
+    // Sort by score (upvotes minus downvotes), highest first. This order is
+    // only recomputed here — on load and on manual refresh — so local
+    // swipe-voting doesn't reshuffle the list mid-session.
+    rows.sort((a, b) => (b.upvotes - b.downvotes) - (a.upvotes - a.downvotes));
     status.hidden = true;
     renderList();
   } catch (err) {
@@ -235,6 +239,8 @@ const SWIPE_INTENT_RATIO = 1.3;  // how much more horizontal than vertical to co
 
 function attachSwipeHandlers(li, row) {
   const card = li.querySelector(".row-card");
+  const leftFlag = li.querySelector(".row-flag-left");
+  const rightFlag = li.querySelector(".row-flag-right");
   let startX = 0,
     startY = 0,
     dx = 0,
@@ -242,6 +248,11 @@ function attachSwipeHandlers(li, row) {
     dragging = false,
     decided = false,
     isHorizontal = false;
+
+  const resetFlags = () => {
+    leftFlag.style.opacity = 0;
+    rightFlag.style.opacity = 0;
+  };
 
   const onStart = (x, y) => {
     startX = x;
@@ -270,6 +281,15 @@ function attachSwipeHandlers(li, row) {
     if (isHorizontal) {
       if (evt && evt.cancelable) evt.preventDefault();
       card.style.transform = `translateX(${dx}px)`;
+      // only the flag matching the current drag direction should be visible
+      const reveal = Math.min(Math.abs(dx) / SWIPE_VOTE_THRESHOLD, 1);
+      if (dx > 0) {
+        leftFlag.style.opacity = reveal;
+        rightFlag.style.opacity = 0;
+      } else {
+        rightFlag.style.opacity = reveal;
+        leftFlag.style.opacity = 0;
+      }
     }
     // if vertical, we do nothing and let the page scroll natively
   };
@@ -285,6 +305,7 @@ function attachSwipeHandlers(li, row) {
       castVote(row, direction, li);
     }
     card.style.transform = "translateX(0)";
+    resetFlags();
     isHorizontal = false;
     decided = false;
   };
@@ -430,12 +451,24 @@ async function deleteEntry() {
   closeDetail();
 }
 
+async function refreshList() {
+  const btn = $("btn-refresh");
+  btn.classList.add("spinning");
+  try {
+    await loadSheet(true);
+    toast("Refreshed");
+  } finally {
+    btn.classList.remove("spinning");
+  }
+}
+
 // ============================================================
 // WIRE UP
 // ============================================================
 window.addEventListener("DOMContentLoaded", () => {
   $("btn-signin").addEventListener("click", signIn);
   $("btn-signout").addEventListener("click", signOut);
+  $("btn-refresh").addEventListener("click", refreshList);
   $("btn-back").addEventListener("click", closeDetail);
   $("btn-done").addEventListener("click", markDone);
   $("btn-delete").addEventListener("click", deleteEntry);

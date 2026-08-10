@@ -26,9 +26,14 @@
   <section id="screen-list" class="screen" hidden>
     <header class="topbar">
       <p class="topbar-title">The Library</p>
-      <button id="btn-signout" class="icon-btn" aria-label="Sign out" title="Sign out">
-        <svg viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M12 3a1 1 0 0 1 1 1v7a1 1 0 1 1-2 0V4a1 1 0 0 1 1-1Zm6.36 2.64a1 1 0 0 1 0 1.41A7 7 0 1 1 5.64 7.05a1 1 0 1 1 1.41 1.41A5 5 0 1 0 16.95 7.05a1 1 0 0 1 1.41-1.41Z"/></svg>
-      </button>
+      <div class="topbar-actions">
+        <button id="btn-refresh" class="icon-btn" aria-label="Refresh" title="Refresh">
+          <svg viewBox="0 0 24 24" width="19" height="19"><path fill="currentColor" d="M12 5V2L8 6l4 4V7a5 5 0 1 1-5 5H5a7 7 0 1 0 7-7Z"/></svg>
+        </button>
+        <button id="btn-signout" class="icon-btn" aria-label="Sign out" title="Sign out">
+          <svg viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M12 3a1 1 0 0 1 1 1v7a1 1 0 1 1-2 0V4a1 1 0 0 1 1-1Zm6.36 2.64a1 1 0 0 1 0 1.41A7 7 0 1 1 5.64 7.05a1 1 0 1 1 1.41 1.41A5 5 0 1 0 16.95 7.05a1 1 0 0 1 1.41-1.41Z"/></svg>
+        </button>
+      </div>
     </header>
 
     <div id="list-status" class="list-status" hidden></div>
