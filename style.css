@@ -222,6 +222,20 @@ button {
   touch-action: pan-y;
 }
 
+.row-badge {
+  display: inline-block;
+  align-self: flex-start;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #1A1500;
+  background: var(--gilt);
+  padding: 3px 9px;
+  border-radius: 999px;
+  margin-bottom: 2px;
+}
+
 .row-reference {
   font-family: var(--font-display);
   font-weight: 700;

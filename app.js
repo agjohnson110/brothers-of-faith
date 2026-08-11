@@ -14,7 +14,7 @@
 // ============================================================
 
 const CFG = window.APP_CONFIG;
-const SHEET_RANGE_READ = `${CFG.SHEET_NAME}!A2:G`;
+const SHEET_RANGE_READ = `${CFG.SHEET_NAME}!A2:H`;
 const SHEETS_BASE = `https://sheets.googleapis.com/v4/spreadsheets/${CFG.SPREADSHEET_ID}`;
 
 let accessToken = null;
@@ -132,12 +132,13 @@ async function loadSheet(quiet = false) {
     rows = values.map((r, i) => ({
       rowNumber: i + 2, // sheet row, since data starts at row 2
       reference: (r[0] || "").trim(),
-      addedBy: (r[1] || "").trim(),
+      addedBy: (r[1] || "").trim(), // for Category="Sunday" rows, holds the role label instead
       dateDiscussed: (r[2] || "").trim(),
       summary: (r[3] || "").trim(),
       notes: (r[4] || "").trim(),
       upvotes: parseInt(r[5], 10) || 0,
       downvotes: parseInt(r[6], 10) || 0,
+      category: (r[7] || "").trim(),
     }));
     // Sort by score (upvotes minus downvotes), highest first. This order is
     // only recomputed here — on load and on manual refresh — so local
@@ -200,12 +201,14 @@ function buildRowEl(row) {
   const li = document.createElement("li");
   li.className = "row";
   li.dataset.rowNumber = row.rowNumber;
+  const isSunday = row.category === "Sunday";
 
   li.innerHTML = `
     <div class="row-flag row-flag-left">＋</div>
     <div class="row-flag row-flag-right">－</div>
     <div class="row-card">
       <div class="row-votes"><span class="up">↑${row.upvotes}</span><span class="down">↓${row.downvotes}</span></div>
+      ${isSunday ? '<div class="row-badge">Sunday</div>' : ""}
       <div class="row-reference"></div>
       <div class="row-summary"></div>
       <div class="row-meta"></div>
@@ -214,7 +217,11 @@ function buildRowEl(row) {
 
   li.querySelector(".row-reference").textContent = row.reference || "(untitled passage)";
   li.querySelector(".row-summary").textContent = row.summary || "No summary yet.";
-  li.querySelector(".row-meta").textContent = row.addedBy ? `added by ${row.addedBy}` : "";
+  li.querySelector(".row-meta").textContent = isSunday
+    ? row.addedBy // role label, e.g. "First Reading"
+    : row.addedBy
+    ? `added by ${row.addedBy}`
+    : "";
 
   attachSwipeHandlers(li, row);
 
