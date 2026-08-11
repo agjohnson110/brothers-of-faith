@@ -27,6 +27,7 @@ const screens = {
   signin: $("screen-signin"),
   list: $("screen-list"),
   detail: $("screen-detail"),
+  add: $("screen-add"),
 };
 
 function showScreen(name) {
@@ -46,10 +47,12 @@ function toast(msg, isError = false) {
 // ============================================================
 // AUTH
 // ============================================================
+let googleDisplayName = ""; // from the signed-in Google account, used to prefill "Added by"
+
 function initAuth() {
   tokenClient = google.accounts.oauth2.initTokenClient({
     client_id: CFG.CLIENT_ID,
-    scope: "https://www.googleapis.com/auth/spreadsheets",
+    scope: "https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/userinfo.profile",
     callback: (resp) => {
       if (resp.error) {
         $("signin-error").hidden = false;
@@ -70,6 +73,20 @@ function initAuth() {
   }
 }
 
+async function fetchGoogleDisplayName() {
+  try {
+    const res = await fetch("https://www.googleapis.com/oauth2/v2/userinfo", {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    if (!res.ok) throw new Error(`userinfo ${res.status}`);
+    const data = await res.json();
+    googleDisplayName = data.name || data.email || "";
+  } catch (err) {
+    console.error(err);
+    googleDisplayName = ""; // the add form just falls back to a blank/remembered field
+  }
+}
+
 function signIn() {
   tokenClient.requestAccessToken({ prompt: "" });
 }
@@ -79,13 +96,14 @@ function signOut() {
     google.accounts.oauth2.revoke(accessToken, () => {});
   }
   accessToken = null;
+  googleDisplayName = "";
   sessionStorage.removeItem("ledger_token");
   showScreen("signin");
 }
 
 async function enterApp(isRestoredSession = false) {
   showScreen("list");
-  await loadSheet(isRestoredSession);
+  await Promise.all([loadSheet(isRestoredSession), fetchGoogleDisplayName()]);
 }
 
 // ============================================================
@@ -161,6 +179,18 @@ async function updateCell(a1, value) {
     {
       method: "PUT",
       body: JSON.stringify({ values: [[value]] }),
+    }
+  );
+}
+
+async function appendRow(rowValues) {
+  // NB: only the range portion is encoded — ":append" must stay literal,
+  // it's part of the Sheets API's method-on-resource path syntax.
+  await sheetsFetch(
+    `/values/${encodeURIComponent(CFG.SHEET_NAME + "!A:H")}:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`,
+    {
+      method: "POST",
+      body: JSON.stringify({ values: [rowValues] }),
     }
   );
 }
@@ -467,6 +497,65 @@ async function refreshList() {
 }
 
 // ============================================================
+// ADD SCREEN
+// ============================================================
+const ADDED_BY_STORAGE_KEY = "ledger_added_by";
+
+function openAddScreen() {
+  $("add-reference").value = "";
+  $("add-summary").value = "";
+  $("add-notes").value = "";
+  // Prefer the Google account's name; fall back to a locally remembered
+  // override (e.g. if someone prefers a nickname) if we have neither.
+  const override = localStorage.getItem(ADDED_BY_STORAGE_KEY);
+  $("add-added-by").value = googleDisplayName || override || "";
+  $("add-error").hidden = true;
+  showScreen("add");
+  $("add-reference").focus();
+}
+
+function closeAddScreen() {
+  showScreen("list");
+}
+
+async function onAddSubmit(e) {
+  e.preventDefault();
+  const reference = $("add-reference").value.trim();
+  const addedBy = $("add-added-by").value.trim();
+  const summary = $("add-summary").value.trim();
+  const notes = $("add-notes").value.trim();
+  const errEl = $("add-error");
+  errEl.hidden = true;
+
+  if (!reference) {
+    errEl.hidden = false;
+    errEl.textContent = "Please enter a scripture reference.";
+    return;
+  }
+
+  const btn = $("btn-add-save");
+  btn.disabled = true;
+  btn.textContent = "Adding…";
+
+  try {
+    // Reference, Added By, Date Discussed (blank = pending), Summary,
+    // Notes, Upvotes, Downvotes, Category (blank = not a Sunday-reading row)
+    await appendRow([reference, addedBy, "", summary, notes, 0, 0, ""]);
+    localStorage.setItem(ADDED_BY_STORAGE_KEY, addedBy);
+    closeAddScreen();
+    toast("Added to the list");
+    await loadSheet(true);
+  } catch (err) {
+    console.error(err);
+    errEl.hidden = false;
+    errEl.textContent = "Couldn't save — check your connection and try again.";
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "Add to the list";
+  }
+}
+
+// ============================================================
 // WIRE UP
 // ============================================================
 window.addEventListener("DOMContentLoaded", () => {
@@ -476,6 +565,9 @@ window.addEventListener("DOMContentLoaded", () => {
   $("btn-back").addEventListener("click", closeDetail);
   $("btn-done").addEventListener("click", markDone);
   $("btn-delete").addEventListener("click", deleteEntry);
+  $("btn-add").addEventListener("click", openAddScreen);
+  $("btn-add-cancel").addEventListener("click", closeAddScreen);
+  $("add-form").addEventListener("submit", onAddSubmit);
 
   // google script loads async; poll briefly until it's ready
   const waitForGoogle = setInterval(() => {

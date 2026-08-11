@@ -43,6 +43,39 @@
       <p class="empty-title">Nothing waiting</p>
       <p class="empty-sub">Every passage in the library has been discussed.</p>
     </div>
+
+    <button id="btn-add" class="fab" aria-label="Add a passage" title="Add a passage">
+      <svg viewBox="0 0 24 24" width="26" height="26"><path fill="currentColor" d="M11 5a1 1 0 1 1 2 0v6h6a1 1 0 1 1 0 2h-6v6a1 1 0 1 1-2 0v-6H5a1 1 0 1 1 0-2h6V5Z"/></svg>
+    </button>
+  </section>
+
+  <!-- ============ ADD SCREEN ============ -->
+  <section id="screen-add" class="screen" hidden>
+    <header class="topbar topbar-detail">
+      <button id="btn-add-cancel" class="icon-btn" aria-label="Cancel">
+        <svg viewBox="0 0 24 24" width="22" height="22"><path fill="currentColor" d="M15.7 4.3a1 1 0 0 1 0 1.4L9.42 12l6.29 6.3a1 1 0 1 1-1.42 1.4l-7-7a1 1 0 0 1 0-1.4l7-7a1 1 0 0 1 1.42 0Z"/></svg>
+      </button>
+      <p class="topbar-title">Add Passage</p>
+      <span class="icon-btn-spacer"></span>
+    </header>
+
+    <form id="add-form" class="add-form">
+      <label class="field-label" for="add-reference">Reference</label>
+      <input id="add-reference" class="field-input" type="text" placeholder="e.g. John 3:16-21" autocomplete="off" required />
+
+      <label class="field-label" for="add-added-by">Added by</label>
+      <input id="add-added-by" class="field-input" type="text" placeholder="Your name" autocomplete="off" />
+
+      <label class="field-label" for="add-summary">Summary</label>
+      <textarea id="add-summary" class="field-textarea" placeholder="Optional — shown under the reference in the list" rows="3"></textarea>
+
+      <label class="field-label" for="add-notes">Notes</label>
+      <textarea id="add-notes" class="field-textarea" placeholder="Optional — shown on the passage's detail screen" rows="3"></textarea>
+
+      <p id="add-error" class="signin-error" hidden></p>
+
+      <button type="submit" id="btn-add-save" class="btn btn-primary">Add to the list</button>
+    </form>
   </section>
 
   <!-- ============ DETAIL SCREEN ============ -->

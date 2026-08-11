@@ -106,6 +106,12 @@ That's it — visit the page on a phone and sign in.
   - **Mark discussed** writes today's date into "Date Discussed."
   - **Not now** writes `Skipped` into "Date Discussed" — it drops off the
     pending list but the row stays in the sheet (nothing is deleted).
+- **The + button** on the list screen opens a form to add a new passage —
+  reference (required), added-by, summary, and notes. It appends a row to
+  the sheet and refreshes the list. "Added by" is prefilled with the signed-in
+  Google account's name, but stays editable — if you type over it, that
+  override is remembered in the browser (not synced across devices) for next
+  time.
 
 ## Known simplifications, worth knowing about
 
@@ -124,13 +130,17 @@ That's it — visit the page on a phone and sign in.
   "unverified app" warning screen and re-sign-in every so often — there's no
   account to submit for verification with this small a user base, so this is
   expected rather than a bug.
-- **Adding new entries** from the app isn't built yet, per your note — the
-  sheet itself remains the way to add new passages for now.
+- **"Added by" on the add form** is prefilled from the signed-in Google
+  account's name, but it's a plain editable text field underneath — nothing
+  stops someone from typing over it with a different name.
+- **Requesting an extra permission**: the app now asks for a `profile`
+  scope (just enough to read the account's display name) in addition to
+  Sheets access. Existing testers will see one extra line on the Google
+  consent screen the next time they sign in — a one-time thing, nothing to
+  set up.
 
 ## Extending later
 
-- Adding new entries from the app: a simple form screen that appends a row
-  via `spreadsheets.values.append`.
 - Per-user vote tracking: store voter emails/names in a delimited cell, or
   add one column per user.
 - Sorting the pending list by votes, date added, etc.

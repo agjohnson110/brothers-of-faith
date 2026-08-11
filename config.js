@@ -8,7 +8,8 @@ window.APP_CONFIG = {
 
   // The long ID in your sheet's URL:
   // https://docs.google.com/spreadsheets/d/THIS_PART/edit
-  SPREADSHEET_ID: "1lezkjn1pwPIMkJVkRp_3gHbQbLJdJpA52aD96hkrmnQ",
+  //SPREADSHEET_ID: "1lezkjn1pwPIMkJVkRp_3gHbQbLJdJpA52aD96hkrmnQ",
+  SPREADSHEET_ID: "1VitjwA75IAMNi6_2_D9ZPfhUa7qlL5FzGNTgdV2uG4M",
 
   // The name of the tab inside the spreadsheet that holds the table
   SHEET_NAME: "Sheet1",

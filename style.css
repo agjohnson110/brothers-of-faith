@@ -357,6 +357,73 @@ button {
 .detail-actions .btn { width: auto; flex: 1; }
 
 /* ============================================================
+   FLOATING ADD BUTTON
+   ============================================================ */
+.fab {
+  position: fixed;
+  right: 20px;
+  bottom: calc(24px + var(--safe-bottom));
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--gilt);
+  color: #1A1500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45);
+  z-index: 10;
+}
+.fab:active { background: var(--gilt-dim); }
+
+/* ============================================================
+   ADD-ENTRY FORM
+   ============================================================ */
+.add-form {
+  display: flex;
+  flex-direction: column;
+  padding: 8px 22px calc(32px + var(--safe-bottom));
+  gap: 6px;
+  flex: 1;
+}
+
+.field-label {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  margin: 16px 0 2px;
+}
+.field-label:first-child { margin-top: 4px; }
+
+.field-input,
+.field-textarea {
+  background: var(--ink-surface);
+  border: 1px solid var(--ink-line);
+  border-radius: 10px;
+  color: var(--text-main);
+  font-family: var(--font-body);
+  font-size: 15px;
+  padding: 12px 14px;
+  width: 100%;
+}
+.field-input:focus,
+.field-textarea:focus {
+  outline: none;
+  border-color: var(--gilt-dim);
+}
+
+.field-textarea {
+  resize: vertical;
+  line-height: 1.4;
+}
+
+#btn-add-save {
+  margin-top: 24px;
+}
+
+/* ============================================================
    TOAST
    ============================================================ */
 .toast {
