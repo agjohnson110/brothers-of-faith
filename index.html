@@ -22,6 +22,17 @@
     </div>
   </section>
 
+  <!-- ============ PICKER SCREEN ============ -->
+  <section id="screen-picker" class="screen" hidden>
+    <div class="signin-wrap">
+      <p class="eyebrow">One more step</p>
+      <h1 class="signin-title">Select your<br>shared sheet</h1>
+      <p class="signin-sub">Google needs you to choose the sheet once, so this app only ever gets access to that one file — not your whole Drive.</p>
+      <button id="btn-pick-file" class="btn btn-primary">Choose sheet</button>
+      <p id="picker-error" class="signin-error" hidden></p>
+    </div>
+  </section>
+
   <!-- ============ LIST SCREEN ============ -->
   <section id="screen-list" class="screen" hidden>
     <header class="topbar">
@@ -121,6 +132,7 @@
   <div id="toast" class="toast" hidden></div>
 
   <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <script src="https://apis.google.com/js/api.js" async defer></script>
   <script src="config.js"></script>
   <script src="app.js"></script>
 </body>

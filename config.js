@@ -8,8 +8,18 @@ window.APP_CONFIG = {
 
   // The long ID in your sheet's URL:
   // https://docs.google.com/spreadsheets/d/THIS_PART/edit
+  // original simple test
   //SPREADSHEET_ID: "1lezkjn1pwPIMkJVkRp_3gHbQbLJdJpA52aD96hkrmnQ",
-  SPREADSHEET_ID: "1VitjwA75IAMNi6_2_D9ZPfhUa7qlL5FzGNTgdV2uG4M",
+  // copy of real sheet in bof folder
+  //SPREADSHEET_ID: "1VitjwA75IAMNi6_2_D9ZPfhUa7qlL5FzGNTgdV2uG4M",
+  //copy of real sheet in my drive
+  SPREADSHEET_ID: "1RZUNP5_N5iJesoe_B9OWpulYul8z940NXs1-IgnIQXM",
+
+  // API key for Google Picker (separate from the OAuth Client ID above).
+  // From Google Cloud Console → APIs & Services → Credentials → Create
+  // Credentials → API key. Restrict it to the Google Picker API and to
+  // your site's HTTP referrer. See README for details.
+  PICKER_API_KEY: "AIzaSyC_F6SGWuMYYsZ6z-RzeVzBEsBDq_WOstE",
 
   // The name of the tab inside the spreadsheet that holds the table
   SHEET_NAME: "Sheet1",

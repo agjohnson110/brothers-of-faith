@@ -43,8 +43,10 @@ This is a one-time setup, done by whoever administers the app.
 
 1. Go to **https://console.cloud.google.com/** and create a new project
    (top-left project dropdown → New Project). Any name is fine.
-2. In the left sidebar: **APIs & Services → Library**. Search for
-   **Google Sheets API** and click **Enable**.
+2. In the left sidebar: **APIs & Services → Library**. Search for and
+   **Enable** each of:
+   - **Google Sheets API**
+   - **Google Picker API**
 3. **APIs & Services → OAuth consent screen**:
    - User type: **External** (this is fine for a small private group).
    - Fill in the app name (e.g. "The Ledger"), your email as support/contact.
@@ -62,6 +64,14 @@ This is a one-time setup, done by whoever administers the app.
    - Leave "Authorized redirect URIs" empty — this app doesn't use redirects.
    - Click **Create**. Copy the **Client ID** shown (ends in
      `.apps.googleusercontent.com`).
+5. **APIs & Services → Credentials → + Create Credentials → API key**:
+   - This is a separate credential from the Client ID above — it's what the
+     Picker (the "choose your sheet" step) uses.
+   - Once created, click into it and set:
+     - **API restrictions**: restrict key → select **Google Picker API** only.
+     - **Application restrictions**: **HTTP referrers** → add your site's
+       URL, e.g. `https://yourdomain.com/*`.
+   - Copy the API key shown.
 
 ---
 
@@ -71,8 +81,9 @@ Open `config.js` and fill in:
 
 ```js
 window.APP_CONFIG = {
-  CLIENT_ID: "...apps.googleusercontent.com",   // from step 2
+  CLIENT_ID: "...apps.googleusercontent.com",   // from step 2.4
   SPREADSHEET_ID: "...",                         // from your sheet's URL
+  PICKER_API_KEY: "...",                         // from step 2.5
   SHEET_NAME: "Sheet1",                          // the tab name
   BIBLE_TRANSLATION: "kjv"
 };
@@ -95,6 +106,11 @@ That's it — visit the page on a phone and sign in.
 
 ## How it behaves
 
+- **Signing in** the very first time (per browser) shows one extra step:
+  choosing your sheet from a Google file picker. This is what grants the
+  app access to that one file specifically, instead of your whole Drive —
+  see "Access scope" below. After that first pick, it's remembered and you
+  won't see it again unless you switch browsers/devices or clear site data.
 - **List screen** shows every row where "Date Discussed" is blank.
   Reference in bold, summary underneath.
 - **Swipe a row left or right** to downvote / upvote it. This writes
@@ -112,6 +128,17 @@ That's it — visit the page on a phone and sign in.
   Google account's name, but stays editable — if you type over it, that
   override is remembered in the browser (not synced across devices) for next
   time.
+
+## Access scope
+
+The app requests Google's `drive.file` permission rather than full Sheets
+access — Google's consent screen describes this as access to "the specific
+Google Drive files you use with this app," and it's enforced, not just
+cosmetic. The one-time file picker step is what grants access to your
+specific shared sheet; the app can't read or touch anything else in anyone's
+Drive. If a person picks the wrong file by mistake, the app checks the ID
+against your configured `SPREADSHEET_ID` and asks them to pick again rather
+than silently using the wrong sheet.
 
 ## Known simplifications, worth knowing about
 

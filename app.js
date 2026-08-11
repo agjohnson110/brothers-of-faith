@@ -25,6 +25,7 @@ const $ = (id) => document.getElementById(id);
 
 const screens = {
   signin: $("screen-signin"),
+  picker: $("screen-picker"),
   list: $("screen-list"),
   detail: $("screen-detail"),
   add: $("screen-add"),
@@ -49,10 +50,19 @@ function toast(msg, isError = false) {
 // ============================================================
 let googleDisplayName = ""; // from the signed-in Google account, used to prefill "Added by"
 
+function fileGrantedKey() {
+  // Keyed by SPREADSHEET_ID so switching sheets in config.js correctly
+  // asks for a fresh pick instead of reusing a stale grant.
+  return `ledger_file_granted_${CFG.SPREADSHEET_ID}`;
+}
+
 function initAuth() {
   tokenClient = google.accounts.oauth2.initTokenClient({
     client_id: CFG.CLIENT_ID,
-    scope: "https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/userinfo.profile",
+    // drive.file: access limited to files the person explicitly selects via
+    // the Picker below (or files this app itself creates) — not their whole
+    // Drive. userinfo.profile: just enough to prefill "Added by".
+    scope: "https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/userinfo.profile",
     callback: (resp) => {
       if (resp.error) {
         $("signin-error").hidden = false;
@@ -61,7 +71,7 @@ function initAuth() {
       }
       accessToken = resp.access_token;
       sessionStorage.setItem("ledger_token", accessToken);
-      enterApp();
+      proceedAfterAuth();
     },
   });
 
@@ -69,7 +79,16 @@ function initAuth() {
   const saved = sessionStorage.getItem("ledger_token");
   if (saved) {
     accessToken = saved;
-    enterApp(true);
+    proceedAfterAuth(true);
+  }
+}
+
+function proceedAfterAuth(isRestoredSession = false) {
+  if (localStorage.getItem(fileGrantedKey())) {
+    enterApp(isRestoredSession);
+  } else {
+    $("picker-error").hidden = true;
+    showScreen("picker");
   }
 }
 
@@ -107,6 +126,59 @@ async function enterApp(isRestoredSession = false) {
 }
 
 // ============================================================
+// PICKER — one-time per-file access grant (drive.file scope)
+// ============================================================
+let pickerApiLoaded = false;
+
+function ensurePickerLoaded(cb) {
+  if (pickerApiLoaded) {
+    cb();
+    return;
+  }
+  if (!window.gapi) {
+    // apis.google.com/js/api.js loads async — retry briefly if it's not
+    // ready yet rather than failing outright.
+    setTimeout(() => ensurePickerLoaded(cb), 100);
+    return;
+  }
+  gapi.load("picker", () => {
+    pickerApiLoaded = true;
+    cb();
+  });
+}
+
+function openPicker() {
+  $("picker-error").hidden = true;
+  ensurePickerLoaded(() => {
+    const view = new google.picker.DocsView(google.picker.ViewId.SPREADSHEETS)
+      .setIncludeFolders(false)
+      .setSelectFolderEnabled(false)
+      .setEnableDrives(true); // required to correctly resolve files inside Shared Drives / shared folders
+    const picker = new google.picker.PickerBuilder()
+      .addView(view)
+      .enableFeature(google.picker.Feature.SUPPORT_DRIVES)
+      .setOAuthToken(accessToken)
+      .setDeveloperKey(CFG.PICKER_API_KEY)
+      .setCallback(onPickerResult)
+      .build();
+    picker.setVisible(true);
+  });
+}
+
+function onPickerResult(data) {
+  if (data.action !== google.picker.Action.PICKED) return;
+  const doc = data.docs[0];
+  if (doc.id === CFG.SPREADSHEET_ID) {
+    localStorage.setItem(fileGrantedKey(), "1");
+    enterApp();
+  } else {
+    $("picker-error").hidden = false;
+    $("picker-error").textContent =
+      "That's not the shared group sheet — please choose the correct one.";
+  }
+}
+
+// ============================================================
 // SHEETS API
 // ============================================================
 async function sheetsFetch(path, options = {}) {
@@ -126,6 +198,15 @@ async function sheetsFetch(path, options = {}) {
     $("signin-error").hidden = false;
     $("signin-error").textContent = "Your session expired. Please sign in again.";
     throw new Error("Unauthorized");
+  }
+  if (res.status === 403) {
+    // With drive.file scope, this means the per-file access grant was
+    // lost or never completed — send back through the picker to re-grant.
+    localStorage.removeItem(fileGrantedKey());
+    showScreen("picker");
+    $("picker-error").hidden = false;
+    $("picker-error").textContent = "Access to the sheet was lost — please choose it again.";
+    throw new Error("PermissionDenied");
   }
   if (!res.ok) {
     const body = await res.text().catch(() => "");
@@ -560,6 +641,7 @@ async function onAddSubmit(e) {
 // ============================================================
 window.addEventListener("DOMContentLoaded", () => {
   $("btn-signin").addEventListener("click", signIn);
+  $("btn-pick-file").addEventListener("click", openPicker);
   $("btn-signout").addEventListener("click", signOut);
   $("btn-refresh").addEventListener("click", refreshList);
   $("btn-back").addEventListener("click", closeDetail);
