@@ -185,3 +185,10 @@ resets their votes and "date discussed" status, since it's new content.
   the role label in column B. Don't hand-edit those two fields on the
   Sunday rows, or the script will lose track of them and create duplicates
   instead of updating in place.
+
+
+## Testing
+1. Run a local server in root directory: `python -m http.server 8000` in VS Code terminal
+2. Open `http://localhost:8000` in your browser
+3. For mobile: Access the IP of your machine on port 8000
+4. Use ctrl-shift-R for windows hard refresh

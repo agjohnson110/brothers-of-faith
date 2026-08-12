@@ -195,6 +195,19 @@ async function appendRow(rowValues) {
   );
 }
 
+async function updateRowFields(rowNumber, reference, addedBy, dateDiscussed, summary, notes) {
+  // Writes columns A:E only — Upvotes, Downvotes, and Category (F:H) are
+  // left untouched by an edit.
+  const range = `A${rowNumber}:E${rowNumber}`;
+  await sheetsFetch(
+    `/values/${encodeURIComponent(CFG.SHEET_NAME + "!" + range)}?valueInputOption=USER_ENTERED`,
+    {
+      method: "PUT",
+      body: JSON.stringify({ values: [[reference, addedBy, dateDiscussed, summary, notes]] }),
+    }
+  );
+}
+
 function todayISO() {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(
@@ -497,11 +510,17 @@ async function refreshList() {
 }
 
 // ============================================================
-// ADD SCREEN
+// ADD / EDIT SCREEN
 // ============================================================
 const ADDED_BY_STORAGE_KEY = "ledger_added_by";
+let addFormMode = "add"; // "add" | "edit"
+let editingRow = null; // the row object being edited, when in edit mode
 
 function openAddScreen() {
+  addFormMode = "add";
+  editingRow = null;
+  $("add-screen-title").textContent = "Add Passage";
+  $("btn-add-save").textContent = "Add to the list";
   $("add-reference").value = "";
   $("add-summary").value = "";
   $("add-notes").value = "";
@@ -514,8 +533,29 @@ function openAddScreen() {
   $("add-reference").focus();
 }
 
+function openEditScreen(row) {
+  if (!row) return;
+  addFormMode = "edit";
+  editingRow = row;
+  $("add-screen-title").textContent = "Edit Passage";
+  $("btn-add-save").textContent = "Save changes";
+  $("add-reference").value = row.reference || "";
+  $("add-added-by").value = row.addedBy || "";
+  $("add-summary").value = row.summary || "";
+  $("add-notes").value = row.notes || "";
+  $("add-error").hidden = true;
+  showScreen("add");
+  $("add-reference").focus();
+}
+
 function closeAddScreen() {
-  showScreen("list");
+  // Return to wherever it makes sense to land: back to the passage's own
+  // detail screen if we were editing it, otherwise back to the list.
+  if (addFormMode === "edit" && editingRow) {
+    showScreen("detail");
+  } else {
+    showScreen("list");
+  }
 }
 
 async function onAddSubmit(e) {
@@ -533,25 +573,47 @@ async function onAddSubmit(e) {
     return;
   }
 
+  const isEdit = addFormMode === "edit" && editingRow;
   const btn = $("btn-add-save");
   btn.disabled = true;
-  btn.textContent = "Adding…";
+  btn.textContent = isEdit ? "Saving…" : "Adding…";
 
   try {
-    // Reference, Added By, Date Discussed (blank = pending), Summary,
-    // Notes, Upvotes, Downvotes, Category (blank = not a Sunday-reading row)
-    await appendRow([reference, addedBy, "", summary, notes, 0, 0, ""]);
     localStorage.setItem(ADDED_BY_STORAGE_KEY, addedBy);
-    closeAddScreen();
-    toast("Added to the list");
-    await loadSheet(true);
+
+    if (isEdit) {
+      // Only touches Reference/Added By/Summary/Notes — Date Discussed,
+      // votes, and Category are left exactly as they were.
+      await updateRowFields(
+        editingRow.rowNumber,
+        reference,
+        addedBy,
+        editingRow.dateDiscussed,
+        summary,
+        notes
+      );
+      editingRow.reference = reference;
+      editingRow.addedBy = addedBy;
+      editingRow.summary = summary;
+      editingRow.notes = notes;
+      toast("Changes saved");
+      renderList(); // reflect the edit without reshuffling sort order
+      openDetail(editingRow); // refresh the detail screen (re-fetches passage text if the reference changed)
+    } else {
+      // Reference, Added By, Date Discussed (blank = pending), Summary,
+      // Notes, Upvotes, Downvotes, Category (blank = not a Sunday-reading row)
+      await appendRow([reference, addedBy, "", summary, notes, 0, 0, ""]);
+      closeAddScreen();
+      toast("Added to the list");
+      await loadSheet(true);
+    }
   } catch (err) {
     console.error(err);
     errEl.hidden = false;
     errEl.textContent = "Couldn't save — check your connection and try again.";
   } finally {
     btn.disabled = false;
-    btn.textContent = "Add to the list";
+    btn.textContent = isEdit ? "Save changes" : "Add to the list";
   }
 }
 
@@ -566,6 +628,7 @@ window.addEventListener("DOMContentLoaded", () => {
   $("btn-done").addEventListener("click", markDone);
   $("btn-delete").addEventListener("click", deleteEntry);
   $("btn-add").addEventListener("click", openAddScreen);
+  $("btn-edit").addEventListener("click", () => openEditScreen(currentDetailRow));
   $("btn-add-cancel").addEventListener("click", closeAddScreen);
   $("add-form").addEventListener("submit", onAddSubmit);
 
