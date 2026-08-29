@@ -35,7 +35,7 @@ function updateSundayReadings() {
   }
   const tz = ss.getSpreadsheetTimeZone();
 
-  const targetSunday = getUpcomingOrCurrentSunday_();
+  const targetSunday = getUpcomingOrCurrentSunday_(tz);
   const dateStr = Utilities.formatDate(targetSunday, tz, "MMddyy");
   const url = `https://bible.usccb.org/bible/readings/${dateStr}.cfm`;
 
@@ -105,13 +105,31 @@ function updateSundayReadings() {
 
 // ---- helpers ----
 
-function getUpcomingOrCurrentSunday_() {
+function getUpcomingOrCurrentSunday_(tz) {
+  // IMPORTANT: don't use now.getDay()/now.getDate()/now.setDate() here.
+  // Those are JS Date local getters/setters, which resolve to the Apps
+  // Script *project's* default timezone (appsscript.json), not
+  // necessarily the spreadsheet's timezone. Since the caller later
+  // formats the result with Utilities.formatDate(..., tz, ...) using the
+  // SPREADSHEET's timezone, mixing the two can silently roll the result
+  // onto the wrong calendar day — especially when the trigger fires close
+  // to midnight, which is exactly the failure this fixes (a Monday
+  // 12:40 AM run landing on Saturday instead of the following Sunday).
+  //
+  // Instead, do everything in terms of `tz` explicitly: get today's
+  // ISO weekday number ("u": 1=Mon...7=Sun) as rendered in `tz`, then
+  // add days to a date string anchored at noon UTC (safely clear of any
+  // timezone offset ever pushing it across a day boundary) before
+  // formatting the result back out in `tz`.
   const now = new Date();
-  const day = now.getDay(); // 0 = Sunday
-  const daysUntilSunday = day === 0 ? 0 : 7 - day;
-  const target = new Date(now);
-  target.setDate(now.getDate() + daysUntilSunday);
-  return target;
+  const isoDow = Number(Utilities.formatDate(now, tz, "u")); // 1..7, 7=Sunday
+  const daysUntilSunday = isoDow === 7 ? 0 : 7 - isoDow;
+
+  const todayStr = Utilities.formatDate(now, tz, "yyyy-MM-dd");
+  const [y, m, d] = todayStr.split("-").map(Number);
+  const anchor = new Date(Date.UTC(y, m - 1, d, 12, 0, 0)); // noon UTC, DST/offset-safe
+  anchor.setUTCDate(anchor.getUTCDate() + daysUntilSunday);
+  return anchor;
 }
 
 function extractBetween_(html, regex) {
