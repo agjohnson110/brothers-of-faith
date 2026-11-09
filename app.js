@@ -465,6 +465,29 @@ async function markDone() {
   if (!currentDetailRow) return;
   const row = currentDetailRow;
   const date = todayISO();
+
+  if (row.category) {
+    try {
+      await appendRow([
+        row.reference,
+        row.addedBy,
+        date,
+        row.summary,
+        row.notes,
+        row.upvotes,
+        row.downvotes,
+        "",
+      ]);
+      toast("Copied and marked discussed");
+      await loadSheet(true);
+      closeDetail();
+    } catch (err) {
+      console.error(err);
+      toast("Couldn't copy the row — try again.", true);
+    }
+    return;
+  }
+
   row.dateDiscussed = date;
   try {
     await updateCell(`C${row.rowNumber}`, date);
@@ -482,6 +505,8 @@ async function markDone() {
 async function deleteEntry() {
   if (!currentDetailRow) return;
   const row = currentDetailRow;
+  if (row.category) return;
+
   const ok = window.confirm("Remove this from the pending list? It'll stay in the sheet marked \"Skipped.\"");
   if (!ok) return;
   row.dateDiscussed = "Skipped";
