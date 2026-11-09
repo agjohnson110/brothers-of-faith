@@ -92,6 +92,7 @@ function signIn() {
 }
 
 function signOut() {
+  closeMenu();
   if (accessToken) {
     google.accounts.oauth2.revoke(accessToken, () => {});
   }
@@ -181,6 +182,47 @@ async function updateCell(a1, value) {
       body: JSON.stringify({ values: [[value]] }),
     }
   );
+}
+
+function closeMenu() {
+  $("main-menu").hidden = true;
+  $("btn-menu").setAttribute("aria-expanded", "false");
+}
+
+function toggleMenu() {
+  const menu = $("main-menu");
+  menu.hidden = !menu.hidden;
+  $("btn-menu").setAttribute("aria-expanded", String(!menu.hidden));
+}
+
+async function resetAllVotes() {
+  closeMenu();
+  if (!rows.length) {
+    toast("There are no rows to reset");
+    return;
+  }
+  if (!window.confirm("Reset all upvotes and downvotes for every row in the sheet?")) return;
+
+  const lastRow = Math.max(...rows.map((row) => row.rowNumber));
+  const values = Array.from({ length: lastRow - 1 }, () => [0, 0]);
+  try {
+    await sheetsFetch(
+      `/values/${encodeURIComponent(CFG.SHEET_NAME + `!F2:G${lastRow}`)}?valueInputOption=USER_ENTERED`,
+      {
+        method: "PUT",
+        body: JSON.stringify({ values }),
+      }
+    );
+    rows.forEach((row) => {
+      row.upvotes = 0;
+      row.downvotes = 0;
+    });
+    renderList();
+    toast("All votes reset");
+  } catch (err) {
+    console.error(err);
+    toast("Couldn't reset votes — try again.", true);
+  }
 }
 
 async function appendRow(rowValues) {
@@ -647,7 +689,23 @@ async function onAddSubmit(e) {
 // ============================================================
 window.addEventListener("DOMContentLoaded", () => {
   $("btn-signin").addEventListener("click", signIn);
-  $("btn-signout").addEventListener("click", signOut);
+  $("btn-menu").addEventListener("click", toggleMenu);
+  $("menu-signout").addEventListener("click", signOut);
+  $("menu-reset-votes").addEventListener("click", resetAllVotes);
+  $("menu-help").addEventListener("click", () => {
+    closeMenu();
+    $("help-dialog").showModal();
+  });
+  $("btn-help-close").addEventListener("click", () => $("help-dialog").close());
+  $("help-dialog").addEventListener("click", (event) => {
+    if (event.target === $("help-dialog")) $("help-dialog").close();
+  });
+  document.addEventListener("click", (event) => {
+    if (!event.target.closest(".menu-wrap")) closeMenu();
+  });
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") closeMenu();
+  });
   $("btn-refresh").addEventListener("click", refreshList);
   $("btn-back").addEventListener("click", closeDetail);
   $("btn-done").addEventListener("click", markDone);

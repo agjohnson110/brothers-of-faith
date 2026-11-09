@@ -45,9 +45,16 @@
         <button id="btn-refresh" class="icon-btn" aria-label="Refresh" title="Refresh">
           <svg viewBox="0 0 24 24" width="19" height="19"><path fill="currentColor" d="M12 5V2L8 6l4 4V7a5 5 0 1 1-5 5H5a7 7 0 1 0 7-7Z"/></svg>
         </button>
-        <button id="btn-signout" class="icon-btn" aria-label="Sign out" title="Sign out">
-          <svg viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M12 3a1 1 0 0 1 1 1v7a1 1 0 1 1-2 0V4a1 1 0 0 1 1-1Zm6.36 2.64a1 1 0 0 1 0 1.41A7 7 0 1 1 5.64 7.05a1 1 0 1 1 1.41 1.41A5 5 0 1 0 16.95 7.05a1 1 0 0 1 1.41-1.41Z"/></svg>
-        </button>
+        <div class="menu-wrap">
+          <button id="btn-menu" class="icon-btn" aria-label="Open menu" aria-haspopup="true" aria-expanded="false" aria-controls="main-menu" title="Menu">
+            <svg viewBox="0 0 24 24" width="21" height="21" aria-hidden="true"><path fill="currentColor" d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+          </button>
+          <div id="main-menu" class="menu-panel" role="menu" hidden>
+            <button id="menu-reset-votes" class="menu-item" role="menuitem">Reset all votes</button>
+            <button id="menu-help" class="menu-item" role="menuitem">How to use the app</button>
+            <button id="menu-signout" class="menu-item menu-item-danger" role="menuitem">Sign out</button>
+          </div>
+        </div>
       </div>
     </header>
 
@@ -133,6 +140,22 @@
       <button id="btn-done" class="btn btn-primary">Mark discussed</button>
     </div>
   </section>
+
+  <dialog id="help-dialog" class="help-dialog" aria-labelledby="help-title">
+    <div class="help-content">
+      <h2 id="help-title">How to use the app</h2>
+      <ul>
+        <li>Tap a passage to read its details and passage text.</li>
+        <li>Swipe right to upvote or left to downvote.</li>
+        <li>Use <strong>Mark discussed</strong> after your group discusses a passage. Categorized readings are copied into the library as discussed items.</li>
+        <li>Use <strong>Hide in library</strong> to remove a regular passage from the pending list without deleting it.</li>
+        <li>Tap <strong>+</strong> to add a passage.</li>
+        <li>Use the refresh button <strong>↺</strong> to reload the shared sheet.</li>
+        <li>Open the menu to reset all votes or sign out.</li>
+      </ul>
+      <button id="btn-help-close" class="btn btn-primary" type="button">Close</button>
+    </div>
+  </dialog>
 
   <!-- toast -->
   <div id="toast" class="toast" hidden></div>
