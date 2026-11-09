@@ -293,18 +293,19 @@ function buildRowEl(row) {
     <div class="row-flag row-flag-right">－</div>
     <div class="row-card">
       <div class="row-votes"><span class="up">↑${row.upvotes}</span><span class="down">↓${row.downvotes}</span></div>
-      ${isSunday ? '<div class="row-badge">Sunday</div>' : ""}
+      ${row.category ? '<div class="row-badge"></div>' : ""}
       <div class="row-reference"></div>
       <div class="row-summary"></div>
       <div class="row-meta"></div>
     </div>
   `;
 
+  if (row.category) li.querySelector(".row-badge").textContent = row.category;
   li.querySelector(".row-reference").textContent = row.reference || "(untitled passage)";
   li.querySelector(".row-summary").textContent = row.summary || "No summary yet.";
   li.querySelector(".row-meta").textContent = isSunday
     ? row.addedBy // role label, e.g. "First Reading"
-    : row.addedBy
+    : !row.category && row.addedBy
     ? `added by ${row.addedBy}`
     : "";
 
