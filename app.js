@@ -590,7 +590,6 @@ async function refreshList() {
 // ============================================================
 // ADD / EDIT SCREEN
 // ============================================================
-const ADDED_BY_STORAGE_KEY = "ledger_added_by";
 let addFormMode = "add"; // "add" | "edit"
 let editingRow = null; // the row object being edited, when in edit mode
 
@@ -602,9 +601,7 @@ function openAddScreen() {
   $("add-reference").value = "";
   $("add-summary").value = "";
   $("add-notes").value = "";
-  // Prefill with the signed-in username, or the user's saved local override.
-  const override = localStorage.getItem(ADDED_BY_STORAGE_KEY);
-  $("add-added-by").value = override || currentUsername;
+  $("add-added-by").value = currentUsername;
   $("add-error").hidden = true;
   showScreen("add");
   $("add-reference").focus();
@@ -656,8 +653,6 @@ async function onAddSubmit(e) {
   btn.textContent = isEdit ? "Saving…" : "Adding…";
 
   try {
-    localStorage.setItem(ADDED_BY_STORAGE_KEY, addedBy);
-
     if (isEdit) {
       // Only touches Reference/Added By/Summary/Notes — Date Discussed,
       // votes, and Category are left exactly as they were.

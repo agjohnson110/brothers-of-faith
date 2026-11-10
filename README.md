@@ -20,13 +20,13 @@ Row 1 must be a header row. Data starts on row 2. Columns, in order:
 | Col | Name           | Notes                                                        |
 |-----|----------------|---------------------------------------------------------------|
 | A   | Reference      | e.g. `John 3:16-21`                                            |
-| B   | Added By       | free text. **Exception:** on the 3 rotating Sunday-reading rows (see below), this instead holds the role label — `First Reading`, `Second Reading`, or `Gospel`. |
+| B   | Added By       | free text. On the spreadsheet-populated Sunday-reading rows, this holds the role label — `First Reading`, `Second Reading`, or `Gospel`. |
 | C   | Date Discussed | **blank** = still pending. The app writes `YYYY-MM-DD` when marked done, or `Skipped` when dismissed. |
 | D   | Summary        | shown under the reference in the list. On Sunday rows this holds the liturgical day's name, e.g. "Nineteenth Sunday in Ordinary Time." |
 | E   | Notes          | shown on the detail screen                                     |
 | F   | Upvotes        | integer; leave blank or 0 to start                             |
 | G   | Downvotes      | integer; leave blank or 0 to start                              |
-| H   | Category       | leave **blank** for regular entries. The Sunday-readings script sets this to `Sunday` for its 3 rows so the app can badge and label them. Add this column if it doesn't exist yet. |
+| H   | Category       | leave **blank** for regular entries. The spreadsheet's Sunday-reading lookups set this to `Sunday` for those rows so the app can badge and label them. Add this column if it doesn't exist yet. |
 
 If your existing sheet doesn't have Upvotes/Downvotes/Category columns yet,
 add them now as columns F, G, and H.
@@ -48,8 +48,7 @@ access.
    account and **Who has access** to **Anyone**. Deploy and authorize the
    script. Copy the web app URL ending in `/exec`.
 5. In `config.js`, set `API_URL` to that `/exec` URL. Confirm
-   `LIBRARY_SHEET_NAME` matches the spreadsheet tab. If you use the optional
-   Sunday-readings automation, set its `SHEET_NAME` to the same tab.
+   `LIBRARY_SHEET_NAME` matches the spreadsheet tab.
 6. Upload `index.html`, `style.css`, `app.js`, and `config.js` to your site.
    Serve the app over HTTPS and sign in with a username and the shared secret.
 
@@ -80,7 +79,7 @@ in Script Properties if it is exposed.
 - **The + button** on the list screen opens a form to add a new passage —
   reference (required), added-by, summary, and notes. It appends a row to
   the sheet and refreshes the list. "Added by" is prefilled with the signed-in
-  username, but stays editable; the edited value is remembered locally.
+  username, but stays editable.
 
 ## Known simplifications, worth knowing about
 
@@ -104,46 +103,6 @@ in Script Properties if it is exposed.
 - Sorting the pending list by votes, date added, etc.
 
 ---
-
-## Optional: automatic Sunday readings
-
-`sunday-readings.gs` is a small script you can attach directly
-to the Google Sheet (separate from the web app) that keeps 3 rows in the
-sheet — First Reading, Second Reading, Gospel — updated to the upcoming (or
-current) Sunday's Mass readings, sourced from USCCB's daily readings pages.
-Each week it overwrites those 3 rows in place with the new citations and
-resets their votes and "date discussed" status, since it's new content.
-
-**Setup:**
-1. Add the `Category` column (H) to your sheet if it isn't there yet.
-2. Open your Sheet → **Extensions → Apps Script**.
-3. Add a script file named `sunday-readings.gs` and paste in its contents.
-   Keep the library API script in the project; do not replace it.
-4. Double check the `SHEET_NAME` constant at the top matches your sheet
-   tab's name and `LIBRARY_SHEET_NAME` in `library-api.gs`.
-5. Run the `updateSundayReadings` function once manually (▶ Run button) to
-   authorize it and confirm it works — check **View → Executions** for logs,
-   especially any "couldn't parse" warnings.
-6. Set up the weekly trigger: click the **clock icon (Triggers)** in the
-   left sidebar → **+ Add Trigger** → function `updateSundayReadings`,
-   event source **Time-driven**, type **Week timer**, pick a day (Monday
-   works well, right after the current Sunday has passed) and a time
-   window. Save.
-
-**Known limitations:**
-- This relies on USCCB's page structure staying the same. If they redesign
-  their site, the parsing may silently fail on a heading — the script logs
-  a warning and leaves the existing row untouched rather than overwriting
-  good data with a blank, but it's worth glancing at the trigger's
-  execution history occasionally.
-- It fetches the readings citations only — not the actual copyrighted
-  reading text from USCCB's own page. The web app fetches the actual verse
-  text separately via bible-api.com, same as your other entries.
-- The three rows are matched by the combination of `Category = Sunday` and
-  the role label in column B. Don't hand-edit those two fields on the
-  Sunday rows, or the script will lose track of them and create duplicates
-  instead of updating in place.
-
 
 ## Testing
 1. Run a local server in root directory: `python -m http.server 8000` in VS Code terminal
