@@ -1,8 +1,8 @@
 # The Ledger — setup guide
 
-A tiny mobile-first web app that reads and writes your shared Google Sheet
-directly from the browser. No backend server required — just these four
-static files on your existing website:
+A tiny mobile-first web app that reads and writes your Google Sheet through
+a bound Apps Script web app. The browser app consists of these four static
+files on your existing website:
 
 ```
 index.html
@@ -20,76 +20,46 @@ Row 1 must be a header row. Data starts on row 2. Columns, in order:
 | Col | Name           | Notes                                                        |
 |-----|----------------|---------------------------------------------------------------|
 | A   | Reference      | e.g. `John 3:16-21`                                            |
-| B   | Added By       | free text. **Exception:** on the 3 rotating Sunday-reading rows (see below), this instead holds the role label — `First Reading`, `Second Reading`, or `Gospel`. |
+| B   | Added By       | free text. On the spreadsheet-populated Sunday-reading rows, this holds the role label — `First Reading`, `Second Reading`, or `Gospel`. |
 | C   | Date Discussed | **blank** = still pending. The app writes `YYYY-MM-DD` when marked done, or `Skipped` when dismissed. |
 | D   | Summary        | shown under the reference in the list. On Sunday rows this holds the liturgical day's name, e.g. "Nineteenth Sunday in Ordinary Time." |
 | E   | Notes          | shown on the detail screen                                     |
 | F   | Upvotes        | integer; leave blank or 0 to start                             |
 | G   | Downvotes      | integer; leave blank or 0 to start                              |
-| H   | Category       | leave **blank** for regular entries. The Sunday-readings script sets this to `Sunday` for its 3 rows so the app can badge and label them. Add this column if it doesn't exist yet. |
+| H   | Category       | leave **blank** for regular entries. The spreadsheet's Sunday-reading lookups set this to `Sunday` for those rows so the app can badge and label them. Add this column if it doesn't exist yet. |
 
 If your existing sheet doesn't have Upvotes/Downvotes/Category columns yet,
 add them now as columns F, G, and H.
 
-**Share the sheet** with each of your 12 users individually (Share button →
-add each person's Google account email → **Editor** access). Each person
-signs into the app with the same Google account you shared it with.
+## 2. Install and deploy the Apps Script API
 
----
+The API runs as a script bound to the target spreadsheet. It performs all
+sheet reads and writes, so the users do not need individual spreadsheet
+access.
 
-## 2. Create a Google Cloud project + OAuth credentials
+1. Open the target spreadsheet and choose **Extensions → Apps Script**.
+2. Add a script file named `library-api.gs` and paste in the contents of
+   this repository's `library-api.gs`. Set `LIBRARY_SHEET_NAME` near the top
+   to the exact tab name containing the library.
+3. In Apps Script, open **Project Settings → Script Properties** and add
+   `API_SECRET` with the shared secret value. Use a long, unique secret and
+   do not put it in `config.js` or in the script source.
+4. Choose **Deploy → New deployment → Web app**. Set **Execute as** to your
+   account and **Who has access** to **Anyone**. Deploy and authorize the
+   script. Copy the web app URL ending in `/exec`.
+5. In `config.js`, set `API_URL` to that `/exec` URL. Confirm
+   `LIBRARY_SHEET_NAME` matches the spreadsheet tab.
+6. Upload `index.html`, `style.css`, `app.js`, and `config.js` to your site.
+   Serve the app over HTTPS and sign in with a username and the shared secret.
 
-This is a one-time setup, done by whoever administers the app.
+When the Apps Script code changes, create a new deployment version and update
+the URL in `config.js` if Apps Script provides a new deployment URL.
 
-1. Go to **https://console.cloud.google.com/** and create a new project
-   (top-left project dropdown → New Project). Any name is fine.
-2. In the left sidebar: **APIs & Services → Library**. Search for
-   **Google Sheets API** and click **Enable**.
-3. **APIs & Services → OAuth consent screen**:
-   - User type: **External** (this is fine for a small private group).
-   - Fill in the app name (e.g. "The Ledger"), your email as support/contact.
-   - Scopes: you can skip adding scopes here — the app requests them at
-     sign-in time.
-   - **Test users**: add the Google account email of each of your 12 users.
-     Leave the app in **Testing** status — you do not need to submit it for
-     verification for a private group like this.
-4. **APIs & Services → Credentials → + Create Credentials → OAuth client ID**:
-   - Application type: **Web application**.
-   - Name: anything, e.g. "Ledger web app".
-   - **Authorized JavaScript origins**: add the exact URL your site will be
-     served from, e.g. `https://yourdomain.com` (no trailing slash, must be
-     `https`, not `http`).
-   - Leave "Authorized redirect URIs" empty — this app doesn't use redirects.
-   - Click **Create**. Copy the **Client ID** shown (ends in
-     `.apps.googleusercontent.com`).
-
----
-
-## 3. Fill in `config.js`
-
-Open `config.js` and fill in:
-
-```js
-window.APP_CONFIG = {
-  CLIENT_ID: "...apps.googleusercontent.com",   // from step 2
-  SPREADSHEET_ID: "...",                         // from your sheet's URL
-  SHEET_NAME: "Sheet1",                          // the tab name
-  BIBLE_TRANSLATION: "kjv"
-};
-```
-
-The `SPREADSHEET_ID` is the long string in your sheet's URL:
-`https://docs.google.com/spreadsheets/d/`**`THIS_PART`**`/edit`.
-
----
-
-## 4. Upload the files
-
-Upload all four files (`index.html`, `style.css`, `app.js`, `config.js`) to
-your website, served over **HTTPS** — Google's sign-in requires it. They can
-sit in a subfolder, e.g. `yourdomain.com/ledger/`.
-
-That's it — visit the page on a phone and sign in.
+**Important:** this is a shared-secret gate, not individual account
+authentication. The secret is stored in each signed-in browser and sent to
+the web app API, so every person who has it can access the spreadsheet through
+the app. Use a unique secret, share it only with trusted users, and rotate it
+in Script Properties if it is exposed.
 
 ---
 
@@ -109,9 +79,7 @@ That's it — visit the page on a phone and sign in.
 - **The + button** on the list screen opens a form to add a new passage —
   reference (required), added-by, summary, and notes. It appends a row to
   the sheet and refreshes the list. "Added by" is prefilled with the signed-in
-  Google account's name, but stays editable — if you type over it, that
-  override is remembered in the browser (not synced across devices) for next
-  time.
+  username, but stays editable.
 
 ## Known simplifications, worth knowing about
 
@@ -125,19 +93,8 @@ That's it — visit the page on a phone and sign in.
   shows a friendly fallback message instead of the verse text — the summary
   and notes still show normally. You can swap in a different Bible text API
   or your own stored text later if this matters.
-- **Sign-in sessions**: because the app is in Google's "Testing" mode (fine
-  for 12 known users), each person may occasionally need to click through an
-  "unverified app" warning screen and re-sign-in every so often — there's no
-  account to submit for verification with this small a user base, so this is
-  expected rather than a bug.
-- **"Added by" on the add form** is prefilled from the signed-in Google
-  account's name, but it's a plain editable text field underneath — nothing
-  stops someone from typing over it with a different name.
-- **Requesting an extra permission**: the app now asks for a `profile`
-  scope (just enough to read the account's display name) in addition to
-  Sheets access. Existing testers will see one extra line on the Google
-  consent screen the next time they sign in — a one-time thing, nothing to
-  set up.
+- **Usernames are labels, not separate accounts.** Anyone with the common
+  secret can enter any username; the app uses it to prefill "Added by."
 
 ## Extending later
 
@@ -146,46 +103,6 @@ That's it — visit the page on a phone and sign in.
 - Sorting the pending list by votes, date added, etc.
 
 ---
-
-## Optional: automatic Sunday readings
-
-`apps-script/sunday-readings.gs` is a small script you can attach directly
-to the Google Sheet (separate from the web app) that keeps 3 rows in the
-sheet — First Reading, Second Reading, Gospel — updated to the upcoming (or
-current) Sunday's Mass readings, sourced from USCCB's daily readings pages.
-Each week it overwrites those 3 rows in place with the new citations and
-resets their votes and "date discussed" status, since it's new content.
-
-**Setup:**
-1. Add the `Category` column (H) to your sheet if it isn't there yet.
-2. Open your Sheet → **Extensions → Apps Script**.
-3. Delete the starter code and paste in the contents of
-   `apps-script/sunday-readings.gs`.
-4. Double check the `SHEET_NAME` constant at the top matches your sheet
-   tab's name (same value as `SHEET_NAME` in the web app's `config.js`).
-5. Run the `updateSundayReadings` function once manually (▶ Run button) to
-   authorize it and confirm it works — check **View → Executions** for logs,
-   especially any "couldn't parse" warnings.
-6. Set up the weekly trigger: click the **clock icon (Triggers)** in the
-   left sidebar → **+ Add Trigger** → function `updateSundayReadings`,
-   event source **Time-driven**, type **Week timer**, pick a day (Monday
-   works well, right after the current Sunday has passed) and a time
-   window. Save.
-
-**Known limitations:**
-- This relies on USCCB's page structure staying the same. If they redesign
-  their site, the parsing may silently fail on a heading — the script logs
-  a warning and leaves the existing row untouched rather than overwriting
-  good data with a blank, but it's worth glancing at the trigger's
-  execution history occasionally.
-- It fetches the readings citations only — not the actual copyrighted
-  reading text from USCCB's own page. The web app fetches the actual verse
-  text separately via bible-api.com, same as your other entries.
-- The three rows are matched by the combination of `Category = Sunday` and
-  the role label in column B. Don't hand-edit those two fields on the
-  Sunday rows, or the script will lose track of them and create duplicates
-  instead of updating in place.
-
 
 ## Testing
 1. Run a local server in root directory: `python -m http.server 8000` in VS Code terminal
