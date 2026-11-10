@@ -14,11 +14,10 @@
 // ============================================================
 
 const CFG = window.APP_CONFIG;
-const SHEET_RANGE_READ = `${CFG.SHEET_NAME}!A2:H`;
-const SHEETS_BASE = `https://sheets.googleapis.com/v4/spreadsheets/${CFG.SPREADSHEET_ID}`;
-
-let accessToken = null;
-let tokenClient = null;
+const USERNAME_STORAGE_KEY = "ledger_username";
+const SECRET_STORAGE_KEY = "ledger_secret";
+let currentUsername = "";
+let currentSecret = "";
 let rows = []; // { rowNumber, reference, addedBy, dateDiscussed, summary, notes, upvotes, downvotes }
 
 const $ = (id) => document.getElementById(id);
@@ -47,92 +46,136 @@ function toast(msg, isError = false) {
 // ============================================================
 // AUTH
 // ============================================================
-let googleDisplayName = ""; // from the signed-in Google account, used to prefill "Added by"
-
-function initAuth() {
-  tokenClient = google.accounts.oauth2.initTokenClient({
-    client_id: CFG.CLIENT_ID,
-    scope: "https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/userinfo.profile",
-    callback: (resp) => {
-      if (resp.error) {
-        $("signin-error").hidden = false;
-        $("signin-error").textContent = "Sign-in failed. Please try again.";
-        return;
-      }
-      accessToken = resp.access_token;
-      sessionStorage.setItem("ledger_token", accessToken);
-      enterApp();
-    },
-  });
-
-  // Reuse a token from earlier this session, if we have one.
-  const saved = sessionStorage.getItem("ledger_token");
-  if (saved) {
-    accessToken = saved;
-    enterApp(true);
-  }
+function setSigninError(message) {
+  const error = $("signin-error");
+  error.textContent = message;
+  error.hidden = false;
 }
 
-async function fetchGoogleDisplayName() {
+function clearCredentials() {
+  currentUsername = "";
+  currentSecret = "";
+  localStorage.removeItem(USERNAME_STORAGE_KEY);
+  localStorage.removeItem(SECRET_STORAGE_KEY);
+}
+
+async function initializeAuth() {
+  const username = localStorage.getItem(USERNAME_STORAGE_KEY);
+  const secret = localStorage.getItem(SECRET_STORAGE_KEY);
+  if (!username || !secret) return;
+
   try {
-    const res = await fetch("https://www.googleapis.com/oauth2/v2/userinfo", {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    });
-    if (!res.ok) throw new Error(`userinfo ${res.status}`);
-    const data = await res.json();
-    googleDisplayName = data.name || data.email || "";
+    await postApi("validate", {}, username, secret);
+    currentUsername = username;
+    currentSecret = secret;
+    await enterApp();
   } catch (err) {
-    console.error(err);
-    googleDisplayName = ""; // the add form just falls back to a blank/remembered field
+    if (err.message === "Unauthorized") {
+      clearCredentials();
+      setSigninError("The username or shared secret is incorrect. Please sign in again.");
+    } else {
+      console.error(err);
+      setSigninError(
+        err.message === "The Apps Script API URL is not configured." ||
+          err.message.includes("API_SECRET")
+          ? err.message
+          : "Couldn't verify your sign-in. Check your connection and try again."
+      );
+    }
   }
 }
 
-function signIn() {
-  tokenClient.requestAccessToken({ prompt: "" });
+async function signIn(event) {
+  event.preventDefault();
+  const username = $("signin-username").value.trim();
+  const secret = $("signin-secret").value;
+  const button = $("btn-signin");
+  $("signin-error").hidden = true;
+
+  if (!username || !secret) {
+    setSigninError("Enter both your username and the shared secret.");
+    return;
+  }
+
+  button.disabled = true;
+  button.textContent = "Signing in...";
+  try {
+    await postApi("validate", {}, username, secret);
+    currentUsername = username;
+    currentSecret = secret;
+    localStorage.setItem(USERNAME_STORAGE_KEY, username);
+    localStorage.setItem(SECRET_STORAGE_KEY, secret);
+    $("signin-secret").value = "";
+    await enterApp();
+  } catch (err) {
+    if (err.message === "Unauthorized") {
+      setSigninError("The username or shared secret is incorrect.");
+    } else {
+      console.error(err);
+      setSigninError(
+        err.message === "The Apps Script API URL is not configured." ||
+          err.message.includes("API_SECRET")
+          ? err.message
+          : "Couldn't sign in. Check your connection and try again."
+      );
+    }
+  } finally {
+    button.disabled = false;
+    button.textContent = "Sign in";
+  }
 }
 
 function signOut() {
   closeMenu();
-  if (accessToken) {
-    google.accounts.oauth2.revoke(accessToken, () => {});
-  }
-  accessToken = null;
-  googleDisplayName = "";
-  sessionStorage.removeItem("ledger_token");
+  clearCredentials();
+  $("signin-secret").value = "";
   showScreen("signin");
 }
 
-async function enterApp(isRestoredSession = false) {
+async function enterApp() {
   showScreen("list");
-  await Promise.all([loadSheet(isRestoredSession), fetchGoogleDisplayName()]);
+  await loadSheet();
 }
 
 // ============================================================
-// SHEETS API
+// APPS SCRIPT API
 // ============================================================
-async function sheetsFetch(path, options = {}) {
-  const res = await fetch(`${SHEETS_BASE}${path}`, {
-    ...options,
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-      "Content-Type": "application/json",
-      ...(options.headers || {}),
-    },
+async function postApi(action, fields = {}, username = currentUsername, secret = currentSecret) {
+  if (!CFG.API_URL) throw new Error("The Apps Script API URL is not configured.");
+
+  const res = await fetch(CFG.API_URL, {
+    method: "POST",
+    body: JSON.stringify({ action, ...fields, username, secret }),
   });
-  if (res.status === 401) {
-    // token expired mid-session — send back to sign-in
-    accessToken = null;
-    sessionStorage.removeItem("ledger_token");
-    showScreen("signin");
-    $("signin-error").hidden = false;
-    $("signin-error").textContent = "Your session expired. Please sign in again.";
-    throw new Error("Unauthorized");
+  if (!res.ok) throw new Error(`Apps Script API error ${res.status}`);
+
+  let data;
+  try {
+    data = await res.json();
+  } catch (err) {
+    throw new Error("The Apps Script API returned an invalid response.");
   }
-  if (!res.ok) {
-    const body = await res.text().catch(() => "");
-    throw new Error(`Sheets API error ${res.status}: ${body}`);
+  if (!data || data.success !== true) {
+    if (data && data.error === "Unauthorized") throw new Error("Unauthorized");
+    throw new Error((data && data.error) || "The Apps Script request failed.");
   }
-  return res.json();
+  return data;
+}
+
+function handleUnauthorized() {
+  clearCredentials();
+  $("signin-secret").value = "";
+  showScreen("signin");
+  setSigninError("Your sign-in is no longer valid. Please enter your credentials again.");
+}
+
+async function apiRequest(action, fields = {}) {
+  try {
+    return await postApi(action, fields);
+  } catch (err) {
+    if (err.message === "Unauthorized") handleUnauthorized();
+    throw err;
+  }
 }
 
 async function loadSheet(quiet = false) {
@@ -140,18 +183,16 @@ async function loadSheet(quiet = false) {
   const listEl = $("list");
   if (!quiet) {
     status.hidden = false;
-    status.textContent = "Loading passages…";
+    status.textContent = "Loading passages...";
     listEl.hidden = true;
   }
   try {
-    const data = await sheetsFetch(
-      `/values/${encodeURIComponent(SHEET_RANGE_READ)}`
-    );
+    const data = await apiRequest("getRows");
     const values = data.values || [];
     rows = values.map((r, i) => ({
-      rowNumber: i + 2, // sheet row, since data starts at row 2
+      rowNumber: i + 2,
       reference: (r[0] || "").trim(),
-      addedBy: (r[1] || "").trim(), // for Category="Sunday" rows, holds the role label instead
+      addedBy: (r[1] || "").trim(),
       dateDiscussed: (r[2] || "").trim(),
       summary: (r[3] || "").trim(),
       notes: (r[4] || "").trim(),
@@ -159,9 +200,7 @@ async function loadSheet(quiet = false) {
       downvotes: parseInt(r[6], 10) || 0,
       category: (r[7] || "").trim(),
     }));
-    // Sort by score (upvotes minus downvotes), highest first. This order is
-    // only recomputed here — on load and on manual refresh — so local
-    // swipe-voting doesn't reshuffle the list mid-session.
+    // Re-sort only after loading; local votes do not reshuffle the list.
     rows.sort((a, b) => (b.upvotes - b.downvotes) - (a.upvotes - a.downvotes));
     status.hidden = true;
     renderList();
@@ -174,14 +213,41 @@ async function loadSheet(quiet = false) {
   }
 }
 
-async function updateCell(a1, value) {
-  await sheetsFetch(
-    `/values/${encodeURIComponent(CFG.SHEET_NAME + "!" + a1)}?valueInputOption=USER_ENTERED`,
-    {
-      method: "PUT",
-      body: JSON.stringify({ values: [[value]] }),
-    }
-  );
+async function updateCell(cell, value) {
+  await apiRequest("updateCell", { cell, value });
+}
+
+async function resetAllVotes() {
+  closeMenu();
+  if (!rows.length) {
+    toast("There are no rows to reset");
+    return;
+  }
+  if (!window.confirm("Reset all upvotes and downvotes for every row in the sheet?")) return;
+
+  try {
+    await apiRequest("resetVotes");
+    rows.forEach((row) => {
+      row.upvotes = 0;
+      row.downvotes = 0;
+    });
+    renderList();
+    toast("All votes reset");
+  } catch (err) {
+    console.error(err);
+    toast("Couldn't reset votes - try again.", true);
+  }
+}
+
+async function appendRow(values) {
+  await apiRequest("appendRow", { values });
+}
+
+async function updateRowFields(rowNumber, reference, addedBy, dateDiscussed, summary, notes) {
+  await apiRequest("updateRow", {
+    rowNumber,
+    values: [reference, addedBy, dateDiscussed, summary, notes],
+  });
 }
 
 function closeMenu() {
@@ -195,61 +261,6 @@ function toggleMenu() {
   $("btn-menu").setAttribute("aria-expanded", String(!menu.hidden));
 }
 
-async function resetAllVotes() {
-  closeMenu();
-  if (!rows.length) {
-    toast("There are no rows to reset");
-    return;
-  }
-  if (!window.confirm("Reset all upvotes and downvotes for every row in the sheet?")) return;
-
-  const lastRow = Math.max(...rows.map((row) => row.rowNumber));
-  const values = Array.from({ length: lastRow - 1 }, () => [0, 0]);
-  try {
-    await sheetsFetch(
-      `/values/${encodeURIComponent(CFG.SHEET_NAME + `!F2:G${lastRow}`)}?valueInputOption=USER_ENTERED`,
-      {
-        method: "PUT",
-        body: JSON.stringify({ values }),
-      }
-    );
-    rows.forEach((row) => {
-      row.upvotes = 0;
-      row.downvotes = 0;
-    });
-    renderList();
-    toast("All votes reset");
-  } catch (err) {
-    console.error(err);
-    toast("Couldn't reset votes — try again.", true);
-  }
-}
-
-async function appendRow(rowValues) {
-  // NB: only the range portion is encoded — ":append" must stay literal,
-  // it's part of the Sheets API's method-on-resource path syntax.
-  await sheetsFetch(
-    `/values/${encodeURIComponent(CFG.SHEET_NAME + "!A:H")}:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`,
-    {
-      method: "POST",
-      body: JSON.stringify({ values: [rowValues] }),
-    }
-  );
-}
-
-async function updateRowFields(rowNumber, reference, addedBy, dateDiscussed, summary, notes) {
-  // Writes columns A:E only — Upvotes, Downvotes, and Category (F:H) are
-  // left untouched by an edit.
-  const range = `A${rowNumber}:E${rowNumber}`;
-  await sheetsFetch(
-    `/values/${encodeURIComponent(CFG.SHEET_NAME + "!" + range)}?valueInputOption=USER_ENTERED`,
-    {
-      method: "PUT",
-      body: JSON.stringify({ values: [[reference, addedBy, dateDiscussed, summary, notes]] }),
-    }
-  );
-}
-
 function todayISO() {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(
@@ -257,7 +268,6 @@ function todayISO() {
   ).padStart(2, "0")}`;
 }
 
-// ============================================================
 // LIST RENDERING
 // ============================================================
 function pendingRows() {
@@ -592,10 +602,9 @@ function openAddScreen() {
   $("add-reference").value = "";
   $("add-summary").value = "";
   $("add-notes").value = "";
-  // Prefer the Google account's name; fall back to a locally remembered
-  // override (e.g. if someone prefers a nickname) if we have neither.
+  // Prefill with the signed-in username, or the user's saved local override.
   const override = localStorage.getItem(ADDED_BY_STORAGE_KEY);
-  $("add-added-by").value = googleDisplayName || override || "";
+  $("add-added-by").value = override || currentUsername;
   $("add-error").hidden = true;
   showScreen("add");
   $("add-reference").focus();
@@ -689,7 +698,7 @@ async function onAddSubmit(e) {
 // WIRE UP
 // ============================================================
 window.addEventListener("DOMContentLoaded", () => {
-  $("btn-signin").addEventListener("click", signIn);
+  $("signin-form").addEventListener("submit", signIn);
   $("btn-menu").addEventListener("click", toggleMenu);
   $("menu-signout").addEventListener("click", signOut);
   $("menu-reset-votes").addEventListener("click", resetAllVotes);
@@ -716,11 +725,5 @@ window.addEventListener("DOMContentLoaded", () => {
   $("btn-add-cancel").addEventListener("click", closeAddScreen);
   $("add-form").addEventListener("submit", onAddSubmit);
 
-  // google script loads async; poll briefly until it's ready
-  const waitForGoogle = setInterval(() => {
-    if (window.google && google.accounts && google.accounts.oauth2) {
-      clearInterval(waitForGoogle);
-      initAuth();
-    }
-  }, 50);
+  initializeAuth();
 });

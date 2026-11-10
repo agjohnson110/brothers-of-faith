@@ -31,8 +31,14 @@
     <div class="signin-wrap">
       <p class="eyebrow">Brothers of Faith</p>
       <h1 class="signin-title">Scripture<br>Library</h1>
-      <p class="signin-sub">Sign in with the Google account your group added you with.</p>
-      <button id="btn-signin" class="btn btn-primary">Sign in with Google</button>
+      <p class="signin-sub">Enter your name and the shared secret to access the library.</p>
+      <form id="signin-form" class="signin-form">
+        <label class="field-label" for="signin-username">Username</label>
+        <input id="signin-username" class="field-input" type="text" autocomplete="username" required />
+        <label class="field-label" for="signin-secret">Shared secret</label>
+        <input id="signin-secret" class="field-input" type="password" autocomplete="current-password" required />
+        <button id="btn-signin" class="btn btn-primary" type="submit">Sign in</button>
+      </form>
       <p id="signin-error" class="signin-error" hidden></p>
     </div>
   </section>
@@ -160,7 +166,6 @@
   <!-- toast -->
   <div id="toast" class="toast" hidden></div>
 
-  <script src="https://accounts.google.com/gsi/client" async defer></script>
   <script src="config.js"></script>
   <script src="app.js"></script>
 </body>

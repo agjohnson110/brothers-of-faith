@@ -9,7 +9,7 @@
  *
  * SETUP
  * 1. Open your Sheet -> Extensions -> Apps Script.
- * 2. Delete any starter code, paste this whole file in, save.
+ * 2. Add a new script file and paste this whole file in, keeping the library API file.
  * 3. Update SHEET_NAME below if your tab isn't called "Sheet1".
  * 4. Run `updateSundayReadings` once manually (Run button) to authorize it
  *    and confirm it works. Check View -> Logs (or View -> Executions) for
@@ -24,7 +24,7 @@
  *   E Notes | F Upvotes | G Downvotes | H Category
  */
 
-const SHEET_NAME = "Sheet1"; // must match SHEET_NAME in the web app's config.js
+const SHEET_NAME = "Sheet1"; // keep in sync with LIBRARY_SHEET_NAME in library-api.gs
 
 function updateSundayReadings() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
