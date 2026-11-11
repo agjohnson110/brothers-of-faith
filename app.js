@@ -509,7 +509,8 @@ async function loadPassageText(reference) {
     return;
   }
   try {
-    const url = `https://bible-api.com/${encodeURIComponent(reference)}?translation=${encodeURIComponent(
+    const apiReference = reference.replace(/(\d+)[a-z](?=\s*(?:[,;:-]|$))/gi, "$1");
+    const url = `https://bible-api.com/${encodeURIComponent(apiReference)}?translation=${encodeURIComponent(
       CFG.BIBLE_TRANSLATION
     )}`;
     const res = await fetch(url);

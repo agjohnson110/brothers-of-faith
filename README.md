@@ -89,7 +89,9 @@ in Script Properties if it is exposed.
   than a simple number.
 - **Passage text** comes from `bible-api.com`, a free public-domain-only
   Bible text API, matched against whatever's in your Reference column. If a
-  reference doesn't parse cleanly (unusual abbreviations, etc.) the app
+  reference includes verse-section suffixes such as `9a` or `13b`, those
+  suffixes are removed for the API lookup only. If a reference doesn't parse
+  cleanly (unusual abbreviations, etc.) the app
   shows a friendly fallback message instead of the verse text — the summary
   and notes still show normally. You can swap in a different Bible text API
   or your own stored text later if this matters.
