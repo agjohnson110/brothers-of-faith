@@ -52,6 +52,10 @@ access.
 6. Upload `index.html`, `style.css`, `app.js`, and `config.js` to your site.
    Serve the app over HTTPS and sign in with a username and the shared secret.
 
+The spreadsheet must also have a tab named `Lectionary`. The Add Passage
+screen's **Random** button selects a random nonblank reference from columns
+D, F, G, I, K, L, N, P, and Q in rows 2–57 of that tab.
+
 When the Apps Script code changes, create a new deployment version and update
 the URL in `config.js` if Apps Script provides a new deployment URL.
 

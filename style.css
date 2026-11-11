@@ -239,6 +239,15 @@ button {
 }
 .icon-btn:active { background: var(--ink-line); }
 .icon-btn-spacer { width: 38px; height: 38px; }
+.icon-btn-random {
+  width: auto;
+  padding: 0 12px;
+  gap: 6px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+}
+.icon-btn-random[hidden] { display: none; }
 
 .icon-btn.spinning svg {
   animation: spin 0.7s linear infinite;

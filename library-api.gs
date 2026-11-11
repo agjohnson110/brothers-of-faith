@@ -1,5 +1,9 @@
 const LIBRARY_SHEET_NAME = "Library";
+const LECTIONARY_SHEET_NAME = "Lectionary";
 const LIBRARY_SECRET_PROPERTY = "API_SECRET";
+const LECTIONARY_REFERENCE_COLUMNS = [4, 6, 7, 9, 11, 12, 14, 16, 17];
+const LECTIONARY_FIRST_DATA_ROW = 2;
+const LECTIONARY_LAST_DATA_ROW = 57;
 
 function doPost(e) {
   try {
@@ -14,6 +18,12 @@ function doPost(e) {
 
     if (request.action === "validate") {
       return jsonResponse({ success: true });
+    }
+    if (request.action === "getRandomLectionaryReference") {
+      return jsonResponse({
+        success: true,
+        reference: getRandomLectionaryReference(),
+      });
     }
 
     const sheet = getLibrarySheet();
@@ -74,6 +84,30 @@ function getLibrarySheet() {
     .getSheetByName(LIBRARY_SHEET_NAME);
   if (!sheet) throw new Error(`Sheet "${LIBRARY_SHEET_NAME}" was not found.`);
   return sheet;
+}
+
+function getRandomLectionaryReference() {
+  const sheet = SpreadsheetApp.getActiveSpreadsheet()
+    .getSheetByName(LECTIONARY_SHEET_NAME);
+  if (!sheet) throw new Error(`Sheet "${LECTIONARY_SHEET_NAME}" was not found.`);
+
+  const references = LECTIONARY_REFERENCE_COLUMNS.flatMap((column) =>
+    sheet
+      .getRange(
+        LECTIONARY_FIRST_DATA_ROW,
+        column,
+        LECTIONARY_LAST_DATA_ROW - LECTIONARY_FIRST_DATA_ROW + 1,
+        1
+      )
+      .getDisplayValues()
+      .map(([value]) => value.trim())
+      .filter(Boolean)
+  );
+  if (!references.length) {
+    throw new Error("No Lectionary references were found.");
+  }
+
+  return references[Math.floor(Math.random() * references.length)];
 }
 
 function jsonResponse(value) {

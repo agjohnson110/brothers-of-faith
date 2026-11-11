@@ -613,6 +613,7 @@ let editingRow = null; // the row object being edited, when in edit mode
 function openAddScreen() {
   addFormMode = "add";
   editingRow = null;
+  $("btn-random-reference").hidden = false;
   $("add-screen-title").textContent = "Add Passage";
   $("btn-add-save").textContent = "Add to the list";
   $("add-reference").value = "";
@@ -628,6 +629,7 @@ function openEditScreen(row) {
   if (!row) return;
   addFormMode = "edit";
   editingRow = row;
+  $("btn-random-reference").hidden = true;
   $("add-screen-title").textContent = "Edit Passage";
   $("btn-add-save").textContent = "Save changes";
   $("add-reference").value = row.reference || "";
@@ -637,6 +639,32 @@ function openEditScreen(row) {
   $("add-error").hidden = true;
   showScreen("add");
   $("add-reference").focus();
+}
+
+async function fillRandomLectionaryReference() {
+  const button = $("btn-random-reference");
+  const error = $("add-error");
+  error.hidden = true;
+  button.disabled = true;
+  button.classList.add("spinning");
+
+  try {
+    const data = await apiRequest("getRandomLectionaryReference");
+    if (typeof data.reference !== "string" || !data.reference.trim()) {
+      throw new Error("The Lectionary API returned an invalid reference.");
+    }
+    $("add-reference").value = data.reference.trim();
+    $("add-reference").focus();
+  } catch (err) {
+    console.error(err);
+    if (err.message !== "Unauthorized") {
+      error.hidden = false;
+      error.textContent = "Couldn't load a random Lectionary passage. Try again.";
+    }
+  } finally {
+    button.disabled = false;
+    button.classList.remove("spinning");
+  }
 }
 
 function closeAddScreen() {
@@ -738,6 +766,7 @@ window.addEventListener("DOMContentLoaded", () => {
   $("btn-add").addEventListener("click", openAddScreen);
   $("btn-edit").addEventListener("click", () => openEditScreen(currentDetailRow));
   $("btn-add-cancel").addEventListener("click", closeAddScreen);
+  $("btn-random-reference").addEventListener("click", fillRandomLectionaryReference);
   $("add-form").addEventListener("submit", onAddSubmit);
 
   initializeAuth();
