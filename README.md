@@ -54,7 +54,9 @@ access.
 
 The spreadsheet must also have a tab named `Lectionary`. The Add Passage
 screen's **Random** button selects a random nonblank reference from columns
-D, F, G, I, K, L, N, P, and Q in rows 2–57 of that tab.
+D, F, G, I, K, L, N, P, and Q in rows 2–57 of that tab. It copies the
+corresponding summary from columns R–Z and sets Notes to
+`Random Access Revelation`.
 
 When the Apps Script code changes, create a new deployment version and update
 the URL in `config.js` if Apps Script provides a new deployment URL.

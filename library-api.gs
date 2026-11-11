@@ -1,7 +1,17 @@
 const LIBRARY_SHEET_NAME = "Library";
 const LECTIONARY_SHEET_NAME = "Lectionary";
 const LIBRARY_SECRET_PROPERTY = "API_SECRET";
-const LECTIONARY_REFERENCE_COLUMNS = [4, 6, 7, 9, 11, 12, 14, 16, 17];
+const LECTIONARY_REFERENCE_SUMMARY_COLUMNS = [
+  [4, 18],
+  [6, 19],
+  [7, 20],
+  [9, 21],
+  [11, 22],
+  [12, 23],
+  [14, 24],
+  [16, 25],
+  [17, 26],
+];
 const LECTIONARY_FIRST_DATA_ROW = 2;
 const LECTIONARY_LAST_DATA_ROW = 57;
 
@@ -22,7 +32,7 @@ function doPost(e) {
     if (request.action === "getRandomLectionaryReference") {
       return jsonResponse({
         success: true,
-        reference: getRandomLectionaryReference(),
+        ...getRandomLectionaryPassage(),
       });
     }
 
@@ -86,28 +96,40 @@ function getLibrarySheet() {
   return sheet;
 }
 
-function getRandomLectionaryReference() {
+function getRandomLectionaryPassage() {
   const sheet = SpreadsheetApp.getActiveSpreadsheet()
     .getSheetByName(LECTIONARY_SHEET_NAME);
   if (!sheet) throw new Error(`Sheet "${LECTIONARY_SHEET_NAME}" was not found.`);
 
-  const references = LECTIONARY_REFERENCE_COLUMNS.flatMap((column) =>
-    sheet
-      .getRange(
-        LECTIONARY_FIRST_DATA_ROW,
-        column,
-        LECTIONARY_LAST_DATA_ROW - LECTIONARY_FIRST_DATA_ROW + 1,
-        1
-      )
-      .getDisplayValues()
-      .map(([value]) => value.trim())
-      .filter(Boolean)
-  );
-  if (!references.length) {
+  const firstColumn = 4;
+  const columnCount = 26 - firstColumn + 1;
+  const rows = sheet
+    .getRange(
+      LECTIONARY_FIRST_DATA_ROW,
+      firstColumn,
+      LECTIONARY_LAST_DATA_ROW - LECTIONARY_FIRST_DATA_ROW + 1,
+      columnCount
+    )
+    .getDisplayValues();
+  const passages = [];
+
+  rows.forEach((row) => {
+    LECTIONARY_REFERENCE_SUMMARY_COLUMNS.forEach(([referenceColumn, summaryColumn]) => {
+      const reference = row[referenceColumn - firstColumn].trim();
+      if (reference) {
+        passages.push({
+          reference,
+          summary: row[summaryColumn - firstColumn].trim(),
+        });
+      }
+    });
+  });
+
+  if (!passages.length) {
     throw new Error("No Lectionary references were found.");
   }
 
-  return references[Math.floor(Math.random() * references.length)];
+  return passages[Math.floor(Math.random() * passages.length)];
 }
 
 function jsonResponse(value) {

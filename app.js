@@ -650,10 +650,16 @@ async function fillRandomLectionaryReference() {
 
   try {
     const data = await apiRequest("getRandomLectionaryReference");
-    if (typeof data.reference !== "string" || !data.reference.trim()) {
-      throw new Error("The Lectionary API returned an invalid reference.");
+    if (
+      typeof data.reference !== "string" ||
+      !data.reference.trim() ||
+      typeof data.summary !== "string"
+    ) {
+      throw new Error("The Lectionary API returned invalid passage data.");
     }
     $("add-reference").value = data.reference.trim();
+    $("add-summary").value = data.summary.trim();
+    $("add-notes").value = "Random Access Revelation";
     $("add-reference").focus();
   } catch (err) {
     console.error(err);
