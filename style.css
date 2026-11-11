@@ -192,6 +192,8 @@ button {
   font-size: 14px;
 }
 
+.menu-item[hidden] { display: none; }
+
 .menu-item:hover,
 .menu-item:focus-visible { background: var(--ink-line); }
 .menu-item-danger { color: #E18A74; }
@@ -416,16 +418,6 @@ button {
   margin: 0;
   white-space: pre-line;
 }
-
-.detail-actions {
-  position: sticky;
-  bottom: 0;
-  display: flex;
-  gap: 10px;
-  padding: 14px 18px calc(16px + var(--safe-bottom));
-  background: linear-gradient(transparent, var(--ink-bg) 30%);
-}
-.detail-actions .btn { width: auto; flex: 1; }
 
 /* ============================================================
    FLOATING ADD BUTTON

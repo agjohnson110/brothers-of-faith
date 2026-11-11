@@ -251,14 +251,26 @@ async function updateRowFields(rowNumber, reference, addedBy, dateDiscussed, sum
 }
 
 function closeMenu() {
-  $("main-menu").hidden = true;
-  $("btn-menu").setAttribute("aria-expanded", "false");
+  ["main-menu", "detail-menu"].forEach((menuId) => {
+    const menu = $(menuId);
+    if (menu) menu.hidden = true;
+  });
+  ["btn-menu", "btn-detail-menu"].forEach((buttonId) => {
+    const button = $(buttonId);
+    if (button) button.setAttribute("aria-expanded", "false");
+  });
 }
 
-function toggleMenu() {
-  const menu = $("main-menu");
-  menu.hidden = !menu.hidden;
-  $("btn-menu").setAttribute("aria-expanded", String(!menu.hidden));
+function toggleMenu(menuId = "main-menu", buttonId = "btn-menu") {
+  const menu = $(menuId);
+  const button = $(buttonId);
+  if (!menu.hidden) {
+    closeMenu();
+    return;
+  }
+  closeMenu();
+  menu.hidden = false;
+  button.setAttribute("aria-expanded", "true");
 }
 
 function todayISO() {
@@ -463,8 +475,10 @@ async function castVote(row, direction, li) {
 let currentDetailRow = null;
 
 async function openDetail(row) {
+  closeMenu();
   currentDetailRow = row;
   showScreen("detail");
+  $("menu-hide").hidden = Boolean(row.category);
 
   $("detail-reference").textContent = row.reference || "(untitled passage)";
 
@@ -515,6 +529,7 @@ function closeDetail() {
 }
 
 async function markDone() {
+  closeMenu();
   if (!currentDetailRow) return;
   const row = currentDetailRow;
   const date = todayISO();
@@ -556,6 +571,7 @@ async function markDone() {
 }
 
 async function deleteEntry() {
+  closeMenu();
   if (!currentDetailRow) return;
   const row = currentDetailRow;
   if (row.category) return;
@@ -694,7 +710,10 @@ async function onAddSubmit(e) {
 // ============================================================
 window.addEventListener("DOMContentLoaded", () => {
   $("signin-form").addEventListener("submit", signIn);
-  $("btn-menu").addEventListener("click", toggleMenu);
+  $("btn-menu").addEventListener("click", () => toggleMenu());
+  $("btn-detail-menu").addEventListener("click", () =>
+    toggleMenu("detail-menu", "btn-detail-menu")
+  );
   $("menu-signout").addEventListener("click", signOut);
   $("menu-reset-votes").addEventListener("click", resetAllVotes);
   $("menu-help").addEventListener("click", () => {
@@ -713,8 +732,8 @@ window.addEventListener("DOMContentLoaded", () => {
   });
   $("btn-refresh").addEventListener("click", refreshList);
   $("btn-back").addEventListener("click", closeDetail);
-  $("btn-done").addEventListener("click", markDone);
-  $("btn-delete").addEventListener("click", deleteEntry);
+  $("menu-done").addEventListener("click", markDone);
+  $("menu-hide").addEventListener("click", deleteEntry);
   $("btn-add").addEventListener("click", openAddScreen);
   $("btn-edit").addEventListener("click", () => openEditScreen(currentDetailRow));
   $("btn-add-cancel").addEventListener("click", closeAddScreen);
